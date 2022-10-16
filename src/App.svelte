@@ -23,7 +23,8 @@
   //loader logs
   listen("log", (event) => {
     loader.push(event.payload);
-    if (event.payload == "Done!") {
+    if (event.payload.includes("Done!")) {
+      console.log("hi");
       setTimeout(() => {
         loading = false;
         loader.clear();
@@ -71,6 +72,8 @@
     //verify that selected jdk is indeed selected
     selectedJDK = await invoke("get_current_jdk");
   });
+
+  // window.isElevated = true;
 </script>
 
 <body>
