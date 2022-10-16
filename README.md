@@ -1,4 +1,8 @@
+<div align="center">
+
 # jman
+<img src="jman.png" width=20%> 
+
 > My first project involving Rust, Svelte and Tauri.
 
 ![](https://img.shields.io/github/downloads/DxxxxY/jman/total?style=for-the-badge)
@@ -8,6 +12,9 @@
 ![](https://img.shields.io/badge/Tauri-0388fc?style=for-the-badge&logo=Tauri&logoColor=white)
 
 A simple and lightweight visual application to manage and change between Java JDK versions with `up/down` arrow keys.
+
+
+</div>
 
 ## Features
 - Permanently sets JDK version using environment variables.
