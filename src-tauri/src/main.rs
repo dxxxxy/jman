@@ -4,7 +4,7 @@
 )]
 
 //imports
-use std::fs;
+use std::{fs, fmt::format};
 use std::process::Command;
 use is_elevated::is_elevated;
 use tauri::{Window, Manager};
@@ -32,26 +32,29 @@ fn get_installed_jdks() -> Vec<String> {
 
 #[tauri::command]
 fn set_jdk(jdk: &str, window: tauri::Window) {
-    log(&window, &format!("Setting JDK to {}", jdk));
+    log(&window, &format!("Setting JDK to {} ...", jdk));
 
     //get array of paths from PATH
-    log(&window, "Getting paths from PATH");
+    log(&window, "Getting paths from PATH...");
     let paths = std::env::var("PATH").unwrap();
     let mut paths = paths.split(";").collect::<Vec<&str>>();
+    log(&window, &format!("Found {} paths!", paths.len()));
     
     //delete old jdks and "javapath"s from paths
-    log(&window, "Deleting old JDKs and javapaths from PATH");
+    log(&window, "Deleting old JDKs and javapaths from PATH...");
     paths.retain(|&p| !p.contains("jdk") && !p.contains("javapath"));
+    log(&window, "Deleted!");
 
     //recreate cleaned PATH string
     let mut paths = paths.join(";");
 
     //add the new jdk to the PATH
-    log(&window, "Adding new JDK to PATH");
+    log(&window, "Adding new JDK to PATH...");
     paths.push_str(&format!(";C:\\Program Files\\Java\\{}\\bin", jdk));
+    log(&window, &format!("Added {}!", &format!("C:\\Program Files\\Java\\{}\\bin", jdk)));
 
     //set PATH (windows only)
-    log(&window, "Setting PATH");
+    log(&window, "Setting global PATH...");
     let command = Command::new("cmd")
         .args(&["/C", "setx", "PATH", "/M", &paths])
         .output()
@@ -67,7 +70,7 @@ fn set_jdk(jdk: &str, window: tauri::Window) {
     }
 
     //set JAVA_HOME (windows only)
-    log(&window, "Setting JAVA_HOME");
+    log(&window, "Setting JAVA_HOME...");
     Command::new("cmd")
         .args(&["/C", "setx", "JAVA_HOME", "/M", &format!("C:\\Program Files\\Java\\{}", jdk)])
         .output()
@@ -111,6 +114,8 @@ fn main() {
         .setup(|app| {
             if !is_elevated() {
                 app.get_window("main").unwrap().eval("window.isElevated = false").unwrap();
+            } else {
+                app.get_window("main").unwrap().eval("window.isElevated = true").unwrap();
             }
             Ok(())
         })
@@ -120,5 +125,5 @@ fn main() {
 }
 
 fn log(window: &Window, message: &str) {
-    Window::emit(&window, "log", message).unwrap();
+    Window::emit(&window, "log", format!("[jman] {message}")).unwrap();
 }

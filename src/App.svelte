@@ -1,6 +1,5 @@
 <script>
   // @ts-nocheck
-
   import Loader from "./lib/Loader.svelte";
   import NotElevated from "./lib/NotElevated.svelte";
   import pack from "../package.json";
@@ -11,7 +10,6 @@
   let loading = false;
   let selectedJDK = "";
   let loader;
-  let notElevated;
 
   (async () => {
     installedJDKS = Array.from(await invoke("get_installed_jdks"));
@@ -29,7 +27,7 @@
 
   //on up/down arrow, select the next/previous JDK in the ul
   document.addEventListener("keyup", async (e) => {
-    if (loading) return;
+    if (loading || !window.isElevated) return;
 
     //get position of selected element
     const selected =
