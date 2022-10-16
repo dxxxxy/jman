@@ -110,10 +110,7 @@ fn main() {
     tauri::Builder::default()
         .setup(|app| {
             if !is_elevated() {
-                match app.handle().get_window("main").unwrap().emit("not-elevated", ()) {
-                    Ok(_) => println!("Sent not-elevated event"),
-                    Err(_) => println!("Failed to send not-elevated event")
-                };
+                app.get_window("main").unwrap().eval("window.isElevated = false").unwrap();
             }
             Ok(())
         })

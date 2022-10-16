@@ -1,4 +1,6 @@
 <script>
+  // @ts-nocheck
+
   import Loader from "./lib/Loader.svelte";
   import NotElevated from "./lib/NotElevated.svelte";
   import pack from "../package.json";
@@ -18,11 +20,6 @@
 
   listen("log", (event) => {
     loader.push(event.payload);
-  });
-
-  listen("not-elevated", (event) => {
-    notElevated = true;
-    console.log("not elevated");
   });
 
   const getVersionFromFolderName = (jdk) => {
@@ -71,10 +68,12 @@
     //set selectedJDK to the new JDK
     selectedJDK = await invoke("get_current_jdk");
   });
+
+  // window.isElevated = true;
 </script>
 
 <body>
-  {#if notElevated}
+  {#if !window.isElevated}
     <NotElevated />
   {:else}
     {#if loading}
