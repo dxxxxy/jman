@@ -18,6 +18,6 @@ A simple and lightweight visual application to manage and change between Java JD
 
 ## Setup
 Download and run the installer from the latest [release](https://github.com/DxxxxY/jman/releases).
-
+> You'll find it in your search bar if you type jman. MAKE SURE TO RUN IN ADMINISTRATOR.
 ## License
 GPLv3 © dxxxxy

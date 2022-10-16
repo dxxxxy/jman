@@ -1,9 +1,9 @@
 [package]
 name = "jman"
-version = "0.0.0"
-description = "A Tauri App"
-authors = ["you"]
-license = ""
+version = "1.0.0"
+description = "A simple and lightweight visual application to manage and change between Java JDK versions with up/down arrow keys."
+authors = ["dxxxxy"]
+license = "GPLv3"
 repository = ""
 edition = "2021"
 rust-version = "1.57"
