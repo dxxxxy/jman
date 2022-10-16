@@ -4,9 +4,10 @@
 )]
 
 //imports
-use std::fs;
+use std::{fs, ptr::null};
 use std::process::Command;
 use is_elevated::is_elevated;
+use tauri::{Window, AppHandle, Manager};
 
 #[tauri::command]
 fn get_installed_jdks() -> Vec<String> {
@@ -30,8 +31,9 @@ fn get_installed_jdks() -> Vec<String> {
 }
 
 #[tauri::command]
-fn set_jdk(jdk: &str) {
+fn set_jdk(jdk: &str, window: tauri::Window) {
     println!("Setting JDK to {}", jdk);
+    log(&window, &format!("Setting JDK to {}", jdk));
 
     //get array of paths from PATH
     let paths = std::env::var("PATH").unwrap();
@@ -89,7 +91,17 @@ fn main() {
 //   }
 
     tauri::Builder::default()
+        .setup(|app| {
+            let window = app.get_window("main").unwrap();
+            window.set_title("JDK Switcher");
+            Window::emit(&window, "haha", "test"); 
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![get_installed_jdks, get_current_jdk, set_jdk])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+fn log(window: &Window, message: &str) {
+    Window::emit(&window, "log", message).unwrap();
 }

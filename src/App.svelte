@@ -1,13 +1,13 @@
 <script>
-  import Greet from "./lib/Greet.svelte";
   import Loader from "./lib/Loader.svelte";
   import pack from "../package.json";
   import { invoke } from "@tauri-apps/api/tauri";
-  import { get } from "svelte/store";
+  import { listen } from "@tauri-apps/api/event";
 
   let installedJDKS;
   let loading = false;
   let selectedJDK = "";
+  let loader;
 
   (async () => {
     installedJDKS = Array.from(await invoke("get_installed_jdks"));
@@ -19,6 +19,10 @@
     console.log(selectedJDK.includes("jdk1.8.0_341"));
 
     getVersionFromFolderName("jdk1.8.0_341");
+
+    listen("log", (event) => {
+      loader.push(event.payload);
+    });
   })();
 
   const getVersionFromFolderName = (jdk) => {
@@ -64,17 +68,19 @@
 
     setTimeout(() => {
       loading = false;
+      loader.clear();
     }, 5000);
 
     console.log(jdk);
     selectedJDK = await invoke("get_current_jdk");
-    document.querySelector(".red").remove();
+
+    // document.querySelector(".red").remove();
   });
 </script>
 
 <body>
   {#if loading}
-    <Loader />
+    <Loader bind:this={loader} />
   {/if}
   <fieldset>
     <legend>jman v{pack.version}</legend>
@@ -90,7 +96,7 @@
       <ul>
         {#each installedJDKS as jdk}
           {#if selectedJDK.includes(getVersionFromFolderName(jdk))}
-            <li class="selected"><b>{jdk}</b></li>
+            <li class="selected">{jdk}</li>
           {:else}
             <li>{jdk}</li>
           {/if}
@@ -102,14 +108,21 @@
 
 <style>
   @import url("https://fonts.googleapis.com/css2?family=Rubik&display=swap");
+  :root {
+    color: #f6f6f6;
+    background-color: #2f2f2f;
+  }
+
   * {
     font-family: Rubik, sans-serif;
     text-align: center;
+    color: white;
   }
 
   .selected {
     list-style-type: ">   ";
     color: lime;
+    font-weight: bold;
   }
 
   .red {
