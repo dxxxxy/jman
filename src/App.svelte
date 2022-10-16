@@ -26,7 +26,9 @@
   //on up/down arrow, select the next/previous JDK in the ul
   document.addEventListener("keyup", async (e) => {
     //get position of selected element
-    const selected = document.querySelector("li.selected");
+    const selected =
+      document.querySelector("li.selected") ||
+      document.querySelectorAll("li")[0];
     const ul = document.querySelector("ul");
     Array.prototype.indexOf.call(ul.childNodes, selected);
     let newJDK;
