@@ -24,7 +24,7 @@
   };
 
   //on up/down arrow, select the next/previous JDK in the ul
-  document.addEventListener("keyup", (e) => {
+  document.addEventListener("keyup", async (e) => {
     //get position of selected element
     const selected = document.querySelector("li.selected");
     const ul = document.querySelector("ul");
@@ -50,7 +50,8 @@
     }
 
     //invoke the setJDK command
-    invoke("set_jdk", { jdk: newJDK.textContent });
+    const jdk = await invoke("set_jdk", { jdk: newJDK.textContent });
+    console.log(jdk);
   });
 </script>
 
