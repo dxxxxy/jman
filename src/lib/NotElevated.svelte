@@ -1,17 +1,5 @@
-<script>
-    export const push = (message) => {
-        document.querySelector("pre").textContent += `${message}\n`;
-    };
-
-    export let title;
-
-    export const clear = () => {
-        document.querySelector("pre").textContent = "";
-    };
-</script>
-
 <div>
-    <h1>{title}</h1>
+    <h1>Please run this as Administrator.</h1>
     <pre />
 </div>
 
@@ -27,10 +15,11 @@
         word-wrap: break-word;
     }
 
-    h1,
-    pre {
+    h1 {
         margin: 0;
         white-space: pre-wrap;
         text-align: left;
+        color: red;
+        font-weight: bold;
     }
 </style>

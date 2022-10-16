@@ -1,5 +1,6 @@
 <script>
   import Loader from "./lib/Loader.svelte";
+  import NotElevated from "./lib/NotElevated.svelte";
   import pack from "../package.json";
   import { invoke } from "@tauri-apps/api/tauri";
   import { listen } from "@tauri-apps/api/event";
@@ -8,22 +9,21 @@
   let loading = false;
   let selectedJDK = "";
   let loader;
+  let notElevated;
 
   (async () => {
     installedJDKS = Array.from(await invoke("get_installed_jdks"));
-    console.log(installedJDKS);
-
     selectedJDK = await invoke("get_current_jdk");
-    console.log(selectedJDK);
-
-    console.log(selectedJDK.includes("jdk1.8.0_341"));
-
-    getVersionFromFolderName("jdk1.8.0_341");
-
-    listen("log", (event) => {
-      loader.push(event.payload);
-    });
   })();
+
+  listen("log", (event) => {
+    loader.push(event.payload);
+  });
+
+  listen("not-elevated", (event) => {
+    notElevated = true;
+    console.log("not elevated");
+  });
 
   const getVersionFromFolderName = (jdk) => {
     const results = /jdk(|-)([0-9._]+)/.exec(jdk);
@@ -65,45 +65,44 @@
     //invoke the setJDK command
     loading = true;
     const jdk = await invoke("set_jdk", { jdk: newJDK.textContent });
+    loading = false;
+    loader.clear();
 
-    setTimeout(() => {
-      loading = false;
-      loader.clear();
-    }, 5000);
-
-    console.log(jdk);
+    //set selectedJDK to the new JDK
     selectedJDK = await invoke("get_current_jdk");
-
-    // document.querySelector(".red").remove();
   });
 </script>
 
 <body>
-  {#if loading}
-    <Loader bind:this={loader} />
-  {/if}
-  <fieldset>
-    <legend>jman v{pack.version}</legend>
+  {#if notElevated}
+    <NotElevated />
+  {:else}
+    {#if loading}
+      <Loader title="Loading..." bind:this={loader} />
+    {/if}
+    <fieldset>
+      <legend>jman v{pack.version}</legend>
 
-    <!-- <p>Currently running: <b>{selectedJDK}</b></p> -->
-    {#if !selectedJDK}
-      <p class="red">
-        No JDK is currently selected. Please select one from the list below.
-      </p>
-    {/if}
-    <p>Installed JDKs detected:</p>
-    {#if installedJDKS}
-      <ul>
-        {#each installedJDKS as jdk}
-          {#if selectedJDK.includes(getVersionFromFolderName(jdk))}
-            <li class="selected">{jdk}</li>
-          {:else}
-            <li>{jdk}</li>
-          {/if}
-        {/each}
-      </ul>
-    {/if}
-  </fieldset>
+      <!-- <p>Currently running: <b>{selectedJDK}</b></p> -->
+      {#if !selectedJDK}
+        <p class="red">
+          No JDK is currently selected. Please select one from the list below.
+        </p>
+      {/if}
+      <p>Installed JDKs detected:</p>
+      {#if installedJDKS}
+        <ul>
+          {#each installedJDKS as jdk}
+            {#if selectedJDK.includes(getVersionFromFolderName(jdk))}
+              <li class="selected">{jdk}</li>
+            {:else}
+              <li>{jdk}</li>
+            {/if}
+          {/each}
+        </ul>
+      {/if}
+    </fieldset>
+  {/if}
 </body>
 
 <style>
