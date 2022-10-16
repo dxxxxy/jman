@@ -1,29 +1,35 @@
 <script>
-  // @ts-nocheck
+  //@ts-nocheck
   import Loader from "./lib/Loader.svelte";
   import NotElevated from "./lib/NotElevated.svelte";
-  import pack from "../package.json";
+
   import { invoke } from "@tauri-apps/api/tauri";
   import { listen } from "@tauri-apps/api/event";
+
+  import { getVersionFromFolderName } from "./utils";
+  import pack from "../package.json";
 
   let installedJDKS;
   let loading = false;
   let selectedJDK = "";
-  let loader;
+  let loader; //comp
 
+  //get info
   (async () => {
     installedJDKS = Array.from(await invoke("get_installed_jdks"));
     selectedJDK = await invoke("get_current_jdk");
   })();
 
+  //loader logs
   listen("log", (event) => {
     loader.push(event.payload);
+    if (event.payload == "Done!") {
+      setTimeout(() => {
+        loading = false;
+        loader.clear();
+      }, 1000);
+    }
   });
-
-  const getVersionFromFolderName = (jdk) => {
-    const results = /jdk(|-)([0-9._]+)/.exec(jdk);
-    return results[2];
-  };
 
   //on up/down arrow, select the next/previous JDK in the ul
   document.addEventListener("keyup", async (e) => {
@@ -35,6 +41,7 @@
       document.querySelectorAll("li")[0];
     const ul = document.querySelector("ul");
     Array.prototype.indexOf.call(ul.childNodes, selected);
+
     let newJDK;
 
     if (e.key === "ArrowUp") {
@@ -58,16 +65,12 @@
     if (!newJDK) return;
 
     //invoke the setJDK command
-    loading = true;
-    const jdk = await invoke("set_jdk", { jdk: newJDK.textContent });
-    loading = false;
-    loader.clear();
+    loading = true; //loading = false is in log listener
+    await invoke("set_jdk", { jdk: newJDK.textContent });
 
-    //set selectedJDK to the new JDK
+    //verify that selected jdk is indeed selected
     selectedJDK = await invoke("get_current_jdk");
   });
-
-  // window.isElevated = true;
 </script>
 
 <body>
@@ -80,12 +83,12 @@
     <fieldset>
       <legend>jman v{pack.version}</legend>
 
-      <!-- <p>Currently running: <b>{selectedJDK}</b></p> -->
       {#if !selectedJDK}
         <p class="red">
           No JDK is currently selected. Please select one from the list below.
         </p>
       {/if}
+
       <p>Installed JDKs detected:</p>
       {#if installedJDKS}
         <ul>

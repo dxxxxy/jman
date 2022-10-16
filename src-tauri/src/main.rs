@@ -4,7 +4,7 @@
 )]
 
 //imports
-use std::{fs, fmt::format};
+use std::fs;
 use std::process::Command;
 use is_elevated::is_elevated;
 use tauri::{Window, Manager};
@@ -84,6 +84,8 @@ fn set_jdk(jdk: &str, window: tauri::Window) {
     } else { 
         log(&window, &stderr.into_owned());
     }
+
+    log(&window, "Done!")
 }
 
 #[tauri::command]
