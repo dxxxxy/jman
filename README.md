@@ -1,8 +1,23 @@
-# Svelte + Vite
+# jman
+> My first project involving Rust, Svelte and Tauri.
 
-This template should help get you started developing with Tauri and Svelte in Vite.
+![](https://img.shields.io/github/downloads/DxxxxY/jman/total?style=for-the-badge)
 
-## Recommended IDE Setup
+![](https://img.shields.io/badge/Rust-black?style=for-the-badge&logo=rust&logoColor=#E57324)
+![](https://img.shields.io/badge/Svelte-FF3E00?style=for-the-badge&logo=Svelte&logoColor=white)
+![](https://img.shields.io/badge/Tauri-0388fc?style=for-the-badge&logo=Tauri&logoColor=white)
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
+A simple and lightweight visual application to manage and change between Java JDK versions with `up/down` arrow keys.
 
+## Features
+- Permanently sets JDK version using environment variables.
+- Detects installed JDKs in `C:\Program Files\Java`.
+- Slick and clean UI written with Svelte.
+- Small bundle size, low memory hog, and blazing-fast (thanks to Tauri).
+- Easy to use.
+
+## Setup
+Download and run the installer from the latest [release](https://github.com/DxxxxY/jman/releases).
+
+## License
+GPLv3 © dxxxxy
