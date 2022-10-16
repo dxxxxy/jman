@@ -1,39 +1,58 @@
 <script>
-  import Greet from './lib/Greet.svelte'
-  import pack from "../package.json"
+  import Greet from "./lib/Greet.svelte";
+  import pack from "../package.json";
+  import { invoke } from "@tauri-apps/api/tauri";
+
+  let installedJDKS;
+  let selectedJDK = "";
+  (async () => {
+    installedJDKS = Array.from(await invoke("get_installed_jdks"));
+    console.log(installedJDKS);
+
+    selectedJDK = await invoke("get_current_jdk");
+    console.log(selectedJDK);
+
+    console.log(selectedJDK.includes("jdk1.8.0_341"));
+  })();
 </script>
 
-<main class="container">
-  <h1>jman v{pack.version}</h1>
+<body>
+  <fieldset>
+    <legend align="left">jman v{pack.version}</legend>
 
-  <div class="row">
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="/vite.svg" class="logo vite" alt="Vite Logo" />
-    </a>
-    <a href="https://tauri.app" target="_blank">
-      <img src="/tauri.svg" class="logo tauri" alt="Tauri Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank">
-      <img src="/svelte.svg" class="logo svelte" alt="Svelte Logo" />
-    </a>
-  </div>
-
-  <p>
-    Click on the Tauri, Vite, and Svelte logos to learn more.
-  </p>
-
-  <div class="row">
-    <Greet />
-  </div>
-
-</main>
+    <!-- <p>Currently running: <b>{selectedJDK}</b></p> -->
+    <p>Installed JDKs detected:</p>
+    {#if installedJDKS}
+      {#each installedJDKS as jdk}
+        {#if /jdk(|-)([0-9._]+)/.exec(selectedJDK)[2]}
+          <p><b> >{jdk}</b></p>
+        {:else}
+          <p>{jdk}</p>
+        {/if}
+      {/each}
+    {/if}
+  </fieldset>
+</body>
 
 <style>
-  .logo.vite:hover {
-    filter: drop-shadow(0 0 2em #747bff);
+  @import url("https://fonts.googleapis.com/css2?family=Rubik&display=swap");
+  * {
+    font-family: Rubik, sans-serif;
   }
 
-  .logo.svelte:hover {
-    filter: drop-shadow(0 0 2em #ff3e00);
+  b {
+    color: lime;
+  }
+
+  body {
+    height: 92.5vh;
+  }
+
+  fieldset {
+    height: 100%;
+  }
+
+  legend {
+    font-size: 2rem;
   }
 </style>
