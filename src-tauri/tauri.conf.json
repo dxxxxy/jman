@@ -1,0 +1,44 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "jman",
+  "version": "2.0.0",
+  "identifier": "studio.dreamys.jman",
+  "build": {
+    "beforeDevCommand": "cargo build -p jman-cli --release && npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "cargo build -p jman-cli --release && npm run build",
+    "frontendDist": "../build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "jman",
+        "width": 440,
+        "height": 640,
+        "minWidth": 380,
+        "minHeight": 480,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "DeveloperTool",
+    "shortDescription": "Switch Java versions instantly",
+    "longDescription": "jman switches the active JDK by re-pointing one stable folder, so terminals and IDEs that are already open pick up the new Java version without a restart.",
+    "copyright": "GPLv3 © dxxxxy",
+    "license": "GPL-3.0-only",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

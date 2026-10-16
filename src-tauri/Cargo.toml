@@ -1,0 +1,24 @@
+[package]
+name = "jman-app"
+description = "Switch Java versions instantly, without restarting terminals or IDEs."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[lib]
+# The `_lib` suffix avoids a name clash with the binary on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "jman_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+jman-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-single-instance = "2"
