@@ -1,0 +1,24 @@
+[workspace]
+members = ["crates/jman-core", "crates/jman-cli", "src-tauri"]
+resolver = "3"
+
+[workspace.package]
+version = "2.0.0"
+edition = "2024"
+license = "GPL-3.0-only"
+authors = ["dxxxxy"]
+repository = "https://github.com/DxxxxY/jman"
+
+[workspace.dependencies]
+jman-core = { path = "crates/jman-core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+
+# https://tauri.app/concept/size/#cargo-configuration
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true
