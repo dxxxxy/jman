@@ -18,18 +18,24 @@ pub struct Jdk {
     pub major: u32,
     pub vendor: Option<String>,
     pub arch: Option<String>,
-    /// Installed by jman into `~/.jman/jdks`, so jman may remove it.
+    /// Installed by jman into `~/.jman/jdks`.
     pub managed: bool,
+    /// Where the JDK was found, e.g. `jman`, `IntelliJ`, `Eclipse Adoptium`, `System`.
+    pub source: String,
 }
 
-/// Well-known folders that contain one JDK per child directory.
-pub fn scan_roots() -> Vec<PathBuf> {
+pub const SOURCE_JMAN: &str = "jman";
+pub const SOURCE_CUSTOM: &str = "Custom folder";
+pub const SOURCE_OTHER: &str = "Other";
+
+/// Well-known folders that contain one JDK per child directory, with a label for each.
+pub fn scan_roots() -> Vec<(PathBuf, String)> {
     let home = paths::home();
-    let mut roots = vec![
-        paths::jdks_dir(),
-        home.join(".jdks"),                // IntelliJ
-        home.join(".gradle").join("jdks"), // Gradle toolchains
-        home.join(".sdkman").join("candidates").join("java"),
+    let mut roots: Vec<(PathBuf, String)> = vec![
+        (paths::jdks_dir(), SOURCE_JMAN.into()),
+        (home.join(".jdks"), "IntelliJ".into()),
+        (home.join(".gradle").join("jdks"), "Gradle".into()),
+        (home.join(".sdkman").join("candidates").join("java"), "SDKMAN".into()),
     ];
 
     if cfg!(windows) {
@@ -47,22 +53,22 @@ pub fn scan_roots() -> Vec<PathBuf> {
                     "Semeru",
                     "OpenJDK",
                 ] {
-                    roots.push(pf.join(vendor));
+                    roots.push((pf.join(vendor), vendor.into()));
                 }
             }
         }
-        roots.push(home.join("scoop").join("apps"));
+        roots.push((home.join("scoop").join("apps"), "scoop".into()));
     } else if cfg!(target_os = "macos") {
-        roots.push("/Library/Java/JavaVirtualMachines".into());
-        roots.push(home.join("Library/Java/JavaVirtualMachines"));
+        roots.push(("/Library/Java/JavaVirtualMachines".into(), "System".into()));
+        roots.push((home.join("Library/Java/JavaVirtualMachines"), "User".into()));
     } else {
         for root in ["/usr/lib/jvm", "/usr/java", "/opt/java", "/opt/jdk"] {
-            roots.push(root.into());
+            roots.push((root.into(), "System".into()));
         }
     }
 
     let mut seen = HashSet::new();
-    roots.retain(|r| seen.insert(r.clone()));
+    roots.retain(|(r, _)| seen.insert(r.clone()));
     roots
 }
 
@@ -71,29 +77,28 @@ pub fn scan_roots() -> Vec<PathBuf> {
 pub fn detect_all() -> Vec<Jdk> {
     let config = Config::load();
     let mut found = Vec::new();
-    for root in scan_roots() {
-        scan_root(&root, &mut found);
+    for (root, source) in scan_roots() {
+        scan_root(&root, &source, &mut found);
     }
     for dir in &config.extra_scan_dirs {
         // an extra folder may be a JDK itself or a folder of JDKs
-        match probe(dir, false) {
+        match probe(dir, SOURCE_CUSTOM) {
             Some(jdk) => found.push((jdk, false)),
-            None => scan_root(dir, &mut found),
+            None => scan_root(dir, SOURCE_CUSTOM, &mut found),
         }
     }
     dedupe(found)
 }
 
 /// Pushes `(jdk, via_symlink)` for each JDK directly under `root`.
-fn scan_root(root: &Path, out: &mut Vec<(Jdk, bool)>) {
+fn scan_root(root: &Path, source: &str, out: &mut Vec<(Jdk, bool)>) {
     let Ok(entries) = fs::read_dir(root) else { return };
-    let managed = root == paths::jdks_dir();
     for entry in entries.flatten() {
         let path = entry.path();
         let via_symlink = entry.file_type().map(|t| t.is_symlink()).unwrap_or(false);
         // macOS bundles keep the home in Contents/Home; scoop points apps/<name>/current at a version
         let candidates = [path.clone(), path.join("Contents").join("Home"), path.join("current")];
-        if let Some(jdk) = candidates.iter().find_map(|c| probe(c, managed)) {
+        if let Some(jdk) = candidates.iter().find_map(|c| probe(c, source)) {
             out.push((jdk, via_symlink));
         }
     }
@@ -134,7 +139,7 @@ pub fn canonical_key(path: &Path) -> PathBuf {
 }
 
 /// Returns a [`Jdk`] if `home` looks like a JDK home directory.
-pub fn probe(home: &Path, managed: bool) -> Option<Jdk> {
+pub fn probe(home: &Path, source: &str) -> Option<Jdk> {
     if !home.join("bin").join(paths::exe_name("java")).is_file() {
         return None;
     }
@@ -154,12 +159,14 @@ pub fn probe(home: &Path, managed: bool) -> Option<Jdk> {
         arch: props.get("OS_ARCH").cloned(),
         id,
         version,
-        managed,
+        managed: source == SOURCE_JMAN,
+        source: source.to_string(),
     })
 }
 
-/// The folder name, skipping macOS bundle internals and scoop's `current`.
-fn id_for(home: &Path) -> String {
+/// The folder a JDK was installed as: the home itself, minus macOS bundle internals
+/// (`X.jdk/Contents/Home`) and scoop's `current`.
+pub fn install_root(home: &Path) -> &Path {
     let mut path = home;
     if path.ends_with("Contents/Home") {
         path = path.parent().and_then(Path::parent).unwrap_or(path);
@@ -167,6 +174,12 @@ fn id_for(home: &Path) -> String {
     if path.file_name().is_some_and(|n| n == "current") {
         path = path.parent().unwrap_or(path);
     }
+    path
+}
+
+/// The folder name, skipping macOS bundle internals and scoop's `current`.
+fn id_for(home: &Path) -> String {
+    let path = install_root(home);
     let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     name.strip_suffix(".jdk").unwrap_or(&name).to_string()
 }
@@ -229,11 +242,14 @@ mod tests {
         fs::write(home.join("bin").join(paths::exe_name("java")), "").unwrap();
         fs::write(home.join("release"), "JAVA_VERSION=\"17.0.9\"\nIMPLEMENTOR=\"Amazon.com Inc.\"\n").unwrap();
 
-        let jdk = probe(&home, false).unwrap();
+        let jdk = probe(&home, "IntelliJ").unwrap();
         assert_eq!(jdk.id, "corretto-17.0.9");
+        assert_eq!(jdk.source, "IntelliJ");
+        assert!(!jdk.managed);
+        assert!(probe(&home, SOURCE_JMAN).unwrap().managed);
         assert_eq!(jdk.major, 17);
         assert_eq!(jdk.vendor.as_deref(), Some("Amazon.com Inc."));
 
-        assert!(probe(dir.path(), false).is_none());
+        assert!(probe(dir.path(), SOURCE_OTHER).is_none());
     }
 }

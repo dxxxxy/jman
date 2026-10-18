@@ -10,6 +10,7 @@ pub mod doctor;
 pub mod download;
 pub mod link;
 pub mod paths;
+pub mod remove;
 pub mod select;
 pub mod setup;
 pub mod version;
@@ -23,7 +24,7 @@ pub fn current() -> Option<Jdk> {
     let key = detect::canonical_key(&target);
     jdks.into_iter()
         .find(|j| detect::canonical_key(&j.home) == key)
-        .or_else(|| detect::probe(&target, false))
+        .or_else(|| detect::probe(&target, detect::SOURCE_OTHER))
 }
 
 /// Switches `~/.jman/current` to the JDK matching `query` and returns it.

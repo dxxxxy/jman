@@ -62,6 +62,7 @@ mod tests {
             vendor: Some(vendor.into()),
             arch: None,
             managed: false,
+            source: "IntelliJ".into(),
         }
     }
 

@@ -1,7 +1,7 @@
 //! Downloading JDKs through the foojay Disco API (https://api.foojay.io).
 
 use std::fs::{self, File};
-use std::io::{self, BufReader, Read, Write};
+use std::io::{BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, bail};
@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::detect::{self, Jdk};
-use crate::{link, paths};
+use crate::paths;
 
 const API: &str = "https://api.foojay.io/disco/v3.0";
 
@@ -184,7 +184,7 @@ pub fn install(pkg: &Package, mut progress: impl FnMut(Progress)) -> anyhow::Res
 
     [dest.clone(), dest.join("Contents").join("Home")]
         .iter()
-        .find_map(|home| detect::probe(home, true))
+        .find_map(|home| detect::probe(home, detect::SOURCE_JMAN))
         .context("the downloaded archive does not contain a JDK")
 }
 
@@ -241,23 +241,6 @@ fn single_root(dir: &Path) -> anyhow::Result<PathBuf> {
         [only] if only.is_dir() => Ok(only.clone()),
         _ => Ok(dir.to_path_buf()),
     }
-}
-
-/// Deletes a JDK that jman installed. Refuses JDKs installed by something else.
-pub fn remove(jdk: &Jdk) -> anyhow::Result<()> {
-    let jdks = detect::canonical_key(&paths::jdks_dir());
-    let home = detect::canonical_key(&jdk.home);
-    // the folder directly under ~/.jman/jdks that contains the home (macOS: X/Contents/Home)
-    let top = home
-        .ancestors()
-        .find(|p| p.parent() == Some(jdks.as_path()))
-        .with_context(|| format!("{} was not installed by jman; uninstall it with its own installer", jdk.id))?
-        .to_path_buf();
-    if link::current_target().is_some_and(|t| detect::canonical_key(&t) == home) {
-        bail!("{} is the selected JDK; switch to another one first", jdk.id);
-    }
-    fs::remove_dir_all(&top).or_else(|e| if e.kind() == io::ErrorKind::NotFound { Ok(()) } else { Err(e) })?;
-    Ok(())
 }
 
 #[cfg(test)]
