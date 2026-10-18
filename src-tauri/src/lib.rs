@@ -5,6 +5,7 @@ use jman_core::config::Config;
 use jman_core::doctor::{self, Report};
 use jman_core::download::{self, Distribution, MajorVersion, Package, Progress};
 use jman_core::setup::{self, SetupStatus};
+use jman_core::remove::{self, Removal};
 use jman_core::{Jdk, detect, link, paths};
 use serde::Serialize;
 use tauri::ipc::Channel;
@@ -14,6 +15,7 @@ use tauri::{AppHandle, Emitter, Manager, WindowEvent};
 mod tray;
 
 pub const ELEVATED_SETUP_ARG: &str = "--elevated-setup";
+pub const ELEVATED_REMOVE_ARG: &str = "--elevated-remove";
 
 type CmdResult<T> = Result<T, String>;
 
@@ -124,15 +126,38 @@ async fn install_jdk(app: AppHandle, distribution: String, major: u32, on_progre
 }
 
 #[tauri::command]
+async fn removal_plan(id: String) -> CmdResult<Removal> {
+    blocking(move || remove::plan(&find_jdk(&id)?)).await
+}
+
+#[tauri::command]
 async fn remove_jdk(app: AppHandle, id: String) -> CmdResult<()> {
     blocking(move || {
-        let jdks = detect::detect_all();
-        let jdk = jdks.iter().find(|j| j.id == id).ok_or_else(|| anyhow::anyhow!("unknown JDK {id}"))?;
-        download::remove(jdk)
+        let jdk = find_jdk(&id)?;
+        let removal = remove::plan(&jdk)?;
+        remove::execute(&jdk, &removal, elevate_delete)
     })
     .await?;
     notify_changed(&app);
     Ok(())
+}
+
+fn find_jdk(id: &str) -> anyhow::Result<Jdk> {
+    detect::detect_all().into_iter().find(|j| j.id == id).ok_or_else(|| anyhow::anyhow!("unknown JDK {id}"))
+}
+
+/// Deletes a JDK folder from an elevated copy of the app (Windows).
+fn elevate_delete(path: &std::path::Path) -> anyhow::Result<()> {
+    #[cfg(windows)]
+    {
+        let exe = std::env::current_exe()?;
+        let args = format!("{ELEVATED_REMOVE_ARG} \"{}\"", path.display());
+        let code = setup::windows::run_elevated(&exe, &args)?;
+        anyhow::ensure!(code == 0, "elevated delete failed (exit code {code})");
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    anyhow::bail!("cannot elevate to delete {}", path.display())
 }
 
 #[tauri::command]
@@ -198,6 +223,7 @@ pub fn run() {
             download_options,
             find_package,
             install_jdk,
+            removal_plan,
             remove_jdk,
             get_config,
             set_extra_scan_dirs,
