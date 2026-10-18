@@ -4,7 +4,7 @@ use std::process::ExitCode;
 use anyhow::Context;
 use clap::{Parser, Subcommand};
 use jman_core::download::{self, Progress};
-use jman_core::{detect, doctor, paths, select, setup};
+use jman_core::{detect, doctor, paths, remove, select, setup};
 
 /// Switch Java versions instantly, without restarting terminals or IDEs.
 #[derive(Parser)]
@@ -38,9 +38,18 @@ enum Command {
     },
     /// List the distributions and versions available for download
     Available,
-    /// Remove a JDK that jman installed
+    /// Remove a JDK: deletes jman's downloads, runs the vendor uninstaller or package manager for others
     #[command(alias = "rm")]
-    Remove { query: String },
+    Remove {
+        #[arg(required_unless_present = "elevated_path")]
+        query: Option<String>,
+        /// Don't ask for confirmation
+        #[arg(long, short)]
+        yes: bool,
+        /// Delete this JDK folder (used internally when elevating on Windows)
+        #[arg(long, hide = true)]
+        elevated_path: Option<std::path::PathBuf>,
+    },
     /// Diagnose the setup
     Doctor,
 }
@@ -67,10 +76,11 @@ fn run(command: Command) -> anyhow::Result<()> {
             for jdk in jdks {
                 let marker = if Some(detect::canonical_key(&jdk.home)) == current { "*" } else { " " };
                 println!(
-                    "{marker} {:width$}  {:12}  {}",
+                    "{marker} {:width$}  {:12}  {:16}  {}",
                     jdk.id,
                     jdk.version,
-                    jdk.vendor.as_deref().unwrap_or("")
+                    jdk.source,
+                    jdk.home.display()
                 );
             }
         }
@@ -108,10 +118,16 @@ fn run(command: Command) -> anyhow::Result<()> {
             }
             println!("\nExample: jman install temurin@{}", versions.first().map(|v| v.major_version).unwrap_or(21));
         }
-        Command::Remove { query } => {
+        Command::Remove { elevated_path: Some(path), .. } => remove::delete_elevated(&path)?,
+        Command::Remove { query, yes, .. } => {
             let jdks = detect::detect_all();
-            let jdk = select::resolve(&query, &jdks)?;
-            download::remove(jdk)?;
+            let jdk = select::resolve(query.as_deref().unwrap_or_default(), &jdks)?;
+            let removal = remove::plan(jdk)?;
+            println!("{} ({}): {}", jdk.id, jdk.source, remove::describe(&removal));
+            if !jdk.managed && !yes && !confirm("Proceed?")? {
+                return Ok(());
+            }
+            remove::execute(jdk, &removal, elevate_delete)?;
             println!("Removed {}", jdk.id);
         }
         Command::Doctor => {
@@ -140,6 +156,27 @@ fn run(command: Command) -> anyhow::Result<()> {
         }
     }
     Ok(())
+}
+
+fn confirm(question: &str) -> anyhow::Result<bool> {
+    print!("{question} [y/N] ");
+    std::io::stdout().flush()?;
+    let mut answer = String::new();
+    std::io::stdin().read_line(&mut answer)?;
+    Ok(matches!(answer.trim(), "y" | "Y" | "yes"))
+}
+
+/// Deletes a JDK folder from an elevated copy of this binary (Windows).
+fn elevate_delete(path: &std::path::Path) -> anyhow::Result<()> {
+    #[cfg(windows)]
+    {
+        let exe = std::env::current_exe()?;
+        let code = setup::windows::run_elevated(&exe, &format!("remove --elevated-path \"{}\"", path.display()))?;
+        anyhow::ensure!(code == 0, "elevated delete failed with exit code {code}");
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    anyhow::bail!("cannot elevate to delete {}", path.display())
 }
 
 fn setup_cmd(system_only: bool) -> anyhow::Result<()> {
