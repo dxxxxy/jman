@@ -8,7 +8,14 @@ export interface Jdk {
   vendor: string | null;
   arch: string | null;
   managed: boolean;
+  /** Where the JDK was found: "jman", "IntelliJ", "Eclipse Adoptium", "System", ... */
+  source: string;
 }
+
+export type Removal =
+  | { kind: "delete"; path: string; needsAdmin: boolean }
+  | { kind: "uninstaller"; name: string; command: string }
+  | { kind: "package"; manager: string; package: string; affected: string[] };
 
 export interface SetupStatus {
   configured: boolean;
@@ -63,6 +70,7 @@ export const downloadOptions = () =>
   invoke<{ distributions: Distribution[]; versions: MajorVersion[] }>("download_options");
 export const findPackage = (distribution: string, major: number) =>
   invoke<Package | null>("find_package", { distribution, major });
+export const removalPlan = (id: string) => invoke<Removal>("removal_plan", { id });
 export const removeJdk = (id: string) => invoke<void>("remove_jdk", { id });
 export const getConfig = () => invoke<Config>("get_config");
 export const setExtraScanDirs = (dirs: string[]) => invoke<void>("set_extra_scan_dirs", { dirs });

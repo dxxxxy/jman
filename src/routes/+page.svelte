@@ -36,7 +36,14 @@
     ];
     return () => unlisteners.forEach((u) => u.then((f) => f()));
   });
+
+  // no browser context menu (Back, Reload, Inspect…) in release builds
+  function onContextMenu(e: MouseEvent) {
+    if (!import.meta.env.DEV) e.preventDefault();
+  }
 </script>
+
+<svelte:window oncontextmenu={onContextMenu} />
 
 <main>
   <header>
