@@ -1,64 +1,44 @@
 {
-    "build": {
-        "beforeDevCommand": "npm run dev",
-        "beforeBuildCommand": "npm run build",
-        "devPath": "http://localhost:1420",
-        "distDir": "../dist",
-        "withGlobalTauri": false
-    },
-    "package": {
-        "productName": "jman",
-        "version": "1.0.0"
-    },
-    "tauri": {
-        "allowlist": {
-            "all": true
-        },
-        "bundle": {
-            "active": true,
-            "category": "DeveloperTool",
-            "copyright": "",
-            "deb": {
-                "depends": []
-            },
-            "externalBin": [],
-            "icon": [
-                "icons/32x32.png",
-                "icons/128x128.png",
-                "icons/128x128@2x.png",
-                "icons/icon.icns",
-                "icons/icon.ico"
-            ],
-            "identifier": "studio.dreamys.jman",
-            "longDescription": "",
-            "macOS": {
-                "entitlements": null,
-                "exceptionDomain": "",
-                "frameworks": [],
-                "providerShortName": null,
-                "signingIdentity": null
-            },
-            "resources": [],
-            "shortDescription": "",
-            "targets": "all",
-            "windows": {
-                "certificateThumbprint": null,
-                "digestAlgorithm": "sha256",
-                "timestampUrl": ""
-            }
-        },
-        "security": {
-            "csp": null
-        },
-        "updater": {
-            "active": false
-        },
-        "windows": [{
-            "fullscreen": false,
-            "height": 600,
-            "resizable": false,
-            "title": "jman",
-            "width": 400
-        }]
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "jman",
+  "version": "2.0.0",
+  "identifier": "studio.dreamys.jman",
+  "build": {
+    "beforeDevCommand": "cargo build -p jman-cli --release && npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "cargo build -p jman-cli --release && npm run build",
+    "frontendDist": "../build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "jman",
+        "width": 440,
+        "height": 640,
+        "minWidth": 380,
+        "minHeight": 480,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src ipc: http://ipc.localhost"
     }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "DeveloperTool",
+    "shortDescription": "Switch Java versions instantly",
+    "longDescription": "jman switches the active JDK by re-pointing one stable folder, so terminals and IDEs that are already open pick up the new Java version without a restart.",
+    "copyright": "GPLv3 © dxxxxy",
+    "license": "GPL-3.0-only",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
 }

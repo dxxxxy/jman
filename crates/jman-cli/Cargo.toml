@@ -1,0 +1,16 @@
+[package]
+name = "jman-cli"
+description = "Command line interface for jman."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "jman"
+path = "src/main.rs"
+
+[dependencies]
+jman-core.workspace = true
+anyhow.workspace = true
+clap = { version = "4", features = ["derive"] }
