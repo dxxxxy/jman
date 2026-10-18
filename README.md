@@ -80,5 +80,10 @@ Set `JMAN_HOME` to a scratch folder to experiment without touching your real `~/
 | `src-tauri` | The desktop app and tray |
 | `src` | The Svelte 5 UI |
 
+## Disclaimer
+This is for educational purposes only. I am not responsible for any damage caused by this tool.
+
+The v2 rewrite was made almost entirely with Claude Opus 5.5 on Medium/High effort.
+
 ## License
 GPLv3 © dxxxxy
