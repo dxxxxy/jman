@@ -28,13 +28,14 @@ PATH      = ~/.jman/current/bin;~/.jman/bin;...
 ## Features
 - Instant switching from the app (click, or <kbd>↑</kbd>/<kbd>↓</kbd>), from the tray menu, or with `jman use 21`.
 - Finds JDKs in the usual install folders: Program Files (Oracle, Temurin, Zulu, Corretto, Microsoft, Liberica…), `/Library/Java/JavaVirtualMachines`, `/usr/lib/jvm`, IntelliJ's `~/.jdks`, Gradle toolchains, SDKMAN and scoop. You can also add your own folders.
+- Shows where each JDK came from, and removes any of them: it deletes jman's own downloads and plain folders, runs the vendor's uninstaller for installed JDKs (Windows "Installed apps"), and uses apt/dnf/Homebrew/scoop for package-managed ones, asking for admin rights only when needed.
 - Downloads JDKs from Temurin, Zulu, Corretto, Liberica, GraalVM and more through the [foojay Disco API](https://api.foojay.io), and verifies their checksums.
 - Windows, macOS and Linux.
 
 ## Setup
 1. Install jman from the latest [release](https://github.com/DxxxxY/jman/releases).
 2. Open it and click **Set up**:
-   - **Windows:** sets the system `JAVA_HOME` and `PATH`. Windows shows one administrator prompt; this is the only time jman needs admin.
+   - **Windows:** sets the system `JAVA_HOME` and `PATH`. Windows shows one administrator prompt. Switching never needs admin afterwards.
    - **macOS / Linux:** adds a marked block to your shell profiles (`~/.zshrc`, `~/.bashrc`, …).
      - On macOS it also adds a LaunchAgent so GUI apps get `JAVA_HOME`.
      - On Linux it also writes `~/.config/environment.d/jman.conf`.
@@ -55,7 +56,7 @@ jman use temurin-21       # by vendor/name and version
 jman current
 jman install zulu@17      # download a JDK (--use to switch to it)
 jman available            # downloadable versions and distributions
-jman remove temurin-21    # delete a JDK that jman downloaded
+jman remove temurin-21    # remove any JDK (asks first; --yes to skip)
 jman doctor               # explain what is wrong with the setup
 jman setup                # the same one-time setup as the app
 ```
