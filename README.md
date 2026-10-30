@@ -11,6 +11,9 @@
 
 Switch Java versions instantly, **without restarting your terminals or IDEs**.
 
+<img src=".github/assets/installed.png" width=45% alt="Installed JDKs">
+<img src=".github/assets/download.png" width=45% alt="Downloading a JDK">
+
 </div>
 
 ## How it works
