@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
 use jman_core::config::Config;
@@ -10,7 +11,8 @@ use jman_core::{Jdk, detect, link, paths};
 use serde::Serialize;
 use tauri::ipc::Channel;
 use tauri::path::BaseDirectory;
-use tauri::{AppHandle, Emitter, Manager, WindowEvent};
+use tauri::webview::PageLoadEvent;
+use tauri::{AppHandle, Emitter, Manager, RunEvent, WebviewWindowBuilder, WindowEvent};
 
 mod tray;
 
@@ -111,8 +113,34 @@ async fn find_package(distribution: String, major: u32) -> CmdResult<Option<Pack
     blocking(move || download::find_package(&distribution, major)).await
 }
 
+/// Downloads in flight. Their progress `Channel` belongs to the webview, so the window is
+/// only hidden, not destroyed, while one runs.
+static DOWNLOADS: AtomicUsize = AtomicUsize::new(0);
+
+struct DownloadGuard(AppHandle);
+
+impl DownloadGuard {
+    fn new(app: &AppHandle) -> Self {
+        DOWNLOADS.fetch_add(1, Ordering::SeqCst);
+        Self(app.clone())
+    }
+}
+
+impl Drop for DownloadGuard {
+    fn drop(&mut self) {
+        // the window was closed during the download: free the webview now
+        if DOWNLOADS.fetch_sub(1, Ordering::SeqCst) == 1
+            && let Some(window) = self.0.get_webview_window("main")
+            && !window.is_visible().unwrap_or(true)
+        {
+            let _ = window.destroy();
+        }
+    }
+}
+
 #[tauri::command]
 async fn install_jdk(app: AppHandle, distribution: String, major: u32, on_progress: Channel<Progress>) -> CmdResult<Jdk> {
+    let _guard = DownloadGuard::new(&app);
     let jdk = blocking(move || {
         let pkg = download::find_package(&distribution, major)?
             .ok_or_else(|| anyhow::anyhow!("no {distribution} {major} build for this platform"))?;
@@ -172,12 +200,33 @@ async fn set_extra_scan_dirs(app: AppHandle, dirs: Vec<PathBuf>) -> CmdResult<()
     Ok(())
 }
 
-pub fn show_main_window(app: &AppHandle) {
+/// Shows the main window, creating it if it was closed. Closing destroys the webview so
+/// jman idles in the tray without WebView2's processes.
+pub fn open_main_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.unminimize();
         let _ = window.show();
         let _ = window.set_focus();
+        return;
     }
+    let Some(config) = app.config().app.windows.first() else { return };
+    let builder = match WebviewWindowBuilder::from_config(app, config) {
+        Ok(builder) => builder,
+        Err(_) => return,
+    };
+    // the window starts hidden and is shown once the page has loaded, so there's no blank frame
+    let builder = builder.on_page_load(|window, payload| {
+        if payload.event() == PageLoadEvent::Finished {
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
+    });
+    // setting browser args replaces Tauri's defaults, so they're repeated here;
+    // the UI is too simple to need the GPU process
+    #[cfg(windows)]
+    let builder = builder
+        .additional_browser_args("--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --disable-gpu");
+    let _ = builder.build();
 }
 
 /// Picks up switches made outside the app (the CLI, another instance) and refreshes the UI and tray.
@@ -199,16 +248,18 @@ fn watch_current_link(app: AppHandle) {
 pub fn run() {
     tauri::Builder::default()
         // must be the first plugin: a second launch just focuses the running app
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| show_main_window(app)))
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| open_main_window(app)))
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             tray::create(app.handle())?;
             watch_current_link(app.handle().clone());
+            open_main_window(app.handle());
             Ok(())
         })
         .on_window_event(|window, event| {
-            // closing the window keeps jman in the tray
-            if let WindowEvent::CloseRequested { api, .. } = event {
+            if let WindowEvent::CloseRequested { api, .. } = event
+                && DOWNLOADS.load(Ordering::SeqCst) > 0
+            {
                 api.prevent_close();
                 let _ = window.hide();
             }
@@ -228,6 +279,13 @@ pub fn run() {
             get_config,
             set_extra_scan_dirs,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app, event| match event {
+            // closing the last window keeps jman in the tray; only Quit (`app.exit`) has a code
+            RunEvent::ExitRequested { code: None, api, .. } => api.prevent_exit(),
+            #[cfg(target_os = "macos")]
+            RunEvent::Reopen { .. } => open_main_window(_app),
+            _ => {}
+        });
 }

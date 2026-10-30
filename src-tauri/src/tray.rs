@@ -30,7 +30,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
         .menu(&build_menu(app)?)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
-            "open" => crate::show_main_window(app),
+            "open" => crate::open_main_window(app),
             "quit" => app.exit(0),
             id => {
                 if let Some(jdk) = id.strip_prefix(JDK_PREFIX) {
@@ -44,7 +44,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
         })
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = event {
-                crate::show_main_window(tray.app_handle());
+                crate::open_main_window(tray.app_handle());
             }
         });
     if let Some(icon) = app.default_window_icon() {

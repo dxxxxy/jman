@@ -13,6 +13,8 @@
     "windows": [
       {
         "label": "main",
+        "create": false,
+        "visible": false,
         "title": "jman",
         "width": 440,
         "height": 640,
