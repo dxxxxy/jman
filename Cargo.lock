@@ -1970,7 +1970,7 @@ dependencies = [
 
 [[package]]
 name = "jman-app"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "anyhow",
  "jman-core",
@@ -1984,7 +1984,7 @@ dependencies = [
 
 [[package]]
 name = "jman-cli"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -1993,7 +1993,7 @@ dependencies = [
 
 [[package]]
 name = "jman-core"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "anyhow",
  "dirs 6.0.0",
